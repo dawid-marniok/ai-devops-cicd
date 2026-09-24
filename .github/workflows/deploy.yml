@@ -1,0 +1,145 @@
+name: Deploy quotes-api
+
+# Lint i testy chcemy widzieć też na PR-ach (szybki feedback),
+# ale build i deploy tylko przy realnym pushu na main.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "app/**"
+      - ".github/workflows/deploy.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "app/**"
+  workflow_dispatch: {}
+
+# Blokujemy nakładające się wdrożenia tego samego Rollout na EKS.
+concurrency:
+  group: deploy-quotes-api
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: eu-central-1
+  ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY || 'quotes-api' }}
+  EKS_CLUSTER_NAME: ${{ vars.EKS_CLUSTER_NAME }}
+  K8S_NAMESPACE: ${{ vars.K8S_NAMESPACE || 'default' }}
+
+jobs:
+  # Job tylko czyta kod repo i uruchamia lokalny linter — nie potrzebuje
+  # żadnego dostępu do AWS ani zapisu do repo.
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalacja ruff
+        run: pip install ruff
+
+      - name: ruff check
+        run: ruff check app
+
+  # Job uruchamia testy jednostkowe na kodzie z repo — tak samo jak lint,
+  # nie potrzebuje żadnych uprawnień poza odczytem kodu.
+  test:
+    needs: lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalacja zależności
+        working-directory: app
+        run: |
+          pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: pytest
+        working-directory: app
+        run: pytest
+
+  # Job musi: (1) odczytać kod, żeby zbudować obraz, (2) uwierzytelnić się
+  # do AWS przez OIDC (id-token: write to wymóg tego mechanizmu — bez niego
+  # GitHub nie wystawi tokenu do wymiany na rolę IAM). Żadnych innych
+  # uprawnień nie potrzebuje — nie dotyka EKS ani nie zapisuje do repo.
+  # Uruchamiamy go tylko dla realnego pushu na main, nie dla PR-ów, żeby
+  # nie budować i nie pchać obrazu przy każdym PR.
+  build:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      image: ${{ steps.image.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Uwierzytelnienie do AWS (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_BUILD_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Logowanie do ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build i push obrazu
+        id: image
+        env:
+          REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          IMAGE="$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          docker build -t "$IMAGE" -f app/Dockerfile app
+          docker push "$IMAGE"
+          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+
+  # Job musi: (1) uwierzytelnić się do AWS przez OIDC (id-token: write —
+  # ten sam powód co w build), (2) po zalogowaniu do klastra wywołać
+  # kubectl, który modyfikuje jeden konkretny obiekt Rollout. Nie potrzebuje
+  # `contents: read`, bo nie czyta kodu z repo — tylko podmienia tag obrazu.
+  # Zakres samego dostępu do klastra (które namespace/zasoby wolno mu
+  # zmieniać) ogranicza rola IAM + RBAC w EKS, nie ten plik.
+  # Ten sam warunek `if` co w build pilnuje, że deploy odpala się
+  # wyłącznie z main.
+  deploy:
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      id-token: write
+    steps:
+      - name: Uwierzytelnienie do AWS (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Aktualizacja kubeconfig dla klastra EKS
+        run: |
+          aws eks update-kubeconfig \
+            --name "$EKS_CLUSTER_NAME" \
+            --region "$AWS_REGION"
+
+      - name: Podmiana obrazu w Rollout quotes-api
+        run: |
+          kubectl set image rollout/quotes-api \
+            quotes-api="${{ needs.build.outputs.image }}" \
+            -n "$K8S_NAMESPACE"
