@@ -139,7 +139,12 @@ jobs:
             --region "$AWS_REGION"
 
       - name: Podmiana obrazu w Rollout quotes-api
+        # `kubectl set image` zna tylko zaszyty na sztywno zestaw wbudowanych
+        # typów (Deployment, StatefulSet...) i nie działa na obiektach CRD
+        # takich jak Rollout, mimo że `kubectl get/apply` na nich działają.
+        # `kubectl patch` jest generyczny i działa na dowolnym zasobie.
         run: |
-          kubectl set image rollout/quotes-api \
-            quotes-api="${{ needs.build.outputs.image }}" \
-            -n "$K8S_NAMESPACE"
+          kubectl patch rollout quotes-api \
+            --type merge \
+            -n "$K8S_NAMESPACE" \
+            -p "{\"spec\":{\"template\":{\"spec\":{\"containers\":[{\"name\":\"quotes-api\",\"image\":\"${{ needs.build.outputs.image }}\"}]}}}}"
