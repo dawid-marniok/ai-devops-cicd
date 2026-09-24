@@ -1,0 +1,32 @@
+# HPA dla Rollouta. `scaleTargetRef` wskazuje na Rollout, nie na Deployment —
+# Argo Rollouts implementuje subresource `scale`, więc HPA działa tak samo.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: quotes-api
+spec:
+  scaleTargetRef:
+    apiVersion: argoproj.io/v1alpha1
+    kind: Rollout
+    name: quotes-api
+
+  minReplicas: 2
+  maxReplicas: 10
+
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 60
+
+  behavior:
+    scaleUp:
+      # Domyślne okno stabilizacji przy skalowaniu w górę to 0 s,
+      # ale to i tak nie usuwa opóźnienia: metryki przychodzą co 15 s,
+      # a nowy pod musi się uruchomić i przejść readiness.
+      stabilizationWindowSeconds: 0
+    scaleDown:
+      # Pięć minut, żeby nie zdejmować replik przy chwilowym spadku ruchu.
+      stabilizationWindowSeconds: 300

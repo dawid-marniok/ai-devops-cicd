@@ -1,0 +1,37 @@
+# Sekrety — nigdy do repo
+*.tfvars
+!example.tfvars
+.env
+.env.*
+!env.example
+*.pem
+*.key
+kubeconfig*
+credentials
+solution/
+solutions/
+demos/
+Agenda.md
+
+# Terraform
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+tfplan
+*.tfplan
+crash.log
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+
+# Narzędzia
+.DS_Store
+*.log
+node_modules/
+results/

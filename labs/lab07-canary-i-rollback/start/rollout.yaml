@@ -1,0 +1,77 @@
+# Rollout zamiast Deployment — to jest cała zmiana potrzebna, żeby mieć canary.
+# Reszta specyfikacji poda wygląda identycznie jak w Deploymencie.
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: quotes-api
+  labels:
+    app: quotes-api
+spec:
+  replicas: 3
+  revisionHistoryLimit: 5
+
+  selector:
+    matchLabels:
+      app: quotes-api
+
+  strategy:
+    canary:
+      # Ruch dzieli ALB, bez service mesh.
+      trafficRouting:
+        alb:
+          ingress: quotes-api
+          servicePort: 80
+          rootService: quotes-api
+
+      canaryService: quotes-api-canary
+      stableService: quotes-api-stable
+
+      # Kroki: 10% i pauza na decyzję, 50% z pauzą minutową, potem całość.
+      # `pause` bez `duration` czeka na `kubectl argo rollouts promote`.
+      steps:
+        - setWeight: 10
+        - pause: {}
+        - setWeight: 50
+        - pause: { duration: 1m }
+        - setWeight: 100
+
+      # Bramka na metrykach: jeśli odsetek 5xx przekroczy próg, rollout
+      # cofa się sam, bez czekania na człowieka.
+      analysis:
+        templates:
+          - templateName: odsetek-bledow
+        startingStep: 1
+        args:
+          - name: service
+            value: quotes-api-canary
+
+  template:
+    metadata:
+      labels:
+        app: quotes-api
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: /metrics
+    spec:
+      containers:
+        - name: quotes-api
+          image: PODMIEN_NA_ECR/quotes-api:v1
+          ports:
+            - containerPort: 8000
+          env:
+            - name: APP_VERSION
+              value: v1
+            - name: FLAGD_HOST
+              value: flagd.flagd.svc.cluster.local
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits: { cpu: 500m, memory: 256Mi }
+          readinessProbe:
+            httpGet: { path: /healthz, port: 8000 }
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: { path: /healthz, port: 8000 }
+            initialDelaySeconds: 10
+            periodSeconds: 10

@@ -1,0 +1,43 @@
+name: deploy-from-comment
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions: write-all
+
+jobs:
+  deploy:
+    if: startsWith(github.event.comment.body, '/deploy')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wyciagnij nazwe galezi
+        id: galaz
+        run: |
+          BRANCH=$(echo "${{ github.event.comment.body }}" | cut -d' ' -f2)
+          echo "branch=$BRANCH" >> $GITHUB_OUTPUT
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.galaz.outputs.branch }}
+
+      - name: Zaloguj do ECR
+        run: |
+          echo "${{ secrets.AWS_SECRET_ACCESS_KEY }}" | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
+
+      - name: Build i deploy
+        run: |
+          docker build -t app:${{ steps.galaz.outputs.branch }} .
+          docker push ${{ secrets.ECR_REGISTRY }}/app:${{ steps.galaz.outputs.branch }}
+          kubectl set image deployment/app app=${{ secrets.ECR_REGISTRY }}/app:${{ steps.galaz.outputs.branch }}
+
+      - name: Odpowiedz w issue
+        uses: actions/github-script@main
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: 'Wdrozono ${{ steps.galaz.outputs.branch }}'
+            })

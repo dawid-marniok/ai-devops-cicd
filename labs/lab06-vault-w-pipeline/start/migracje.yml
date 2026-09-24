@@ -1,0 +1,20 @@
+# Stan wyjściowy — tak to wygląda w wielu repozytoriach.
+name: migracje
+
+on:
+  workflow_dispatch:
+
+permissions: write-all
+
+jobs:
+  migracje:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Migracje
+        run: |
+          # Connection string wpisany na sztywno. Wartość jest w repo,
+          # w historii gita, w każdym forku i w każdym klonie na laptopie.
+          export DATABASE_URL="postgresql://app_user:Prod!2024@db.wewnetrzny:5432/quotes"
+          echo "Łączę się z bazą..."

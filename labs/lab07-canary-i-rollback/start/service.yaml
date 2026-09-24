@@ -1,0 +1,37 @@
+# Trzy usługi: stabilna, canary i wejściowa. Argo Rollouts przepina endpointy
+# między pierwszymi dwiema, ALB rozdziela ruch według wag.
+apiVersion: v1
+kind: Service
+metadata:
+  name: quotes-api
+  labels: { app: quotes-api }
+spec:
+  type: ClusterIP
+  selector: { app: quotes-api }
+  ports:
+    - port: 80
+      targetPort: 8000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: quotes-api-stable
+  labels: { app: quotes-api }
+spec:
+  type: ClusterIP
+  selector: { app: quotes-api }
+  ports:
+    - port: 80
+      targetPort: 8000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: quotes-api-canary
+  labels: { app: quotes-api }
+spec:
+  type: ClusterIP
+  selector: { app: quotes-api }
+  ports:
+    - port: 80
+      targetPort: 8000

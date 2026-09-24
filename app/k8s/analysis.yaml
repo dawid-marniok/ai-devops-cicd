@@ -1,0 +1,27 @@
+# Bramka jakości dla canary. Argo Rollouts odpytuje Prometheusa co minutę
+# i cofa wdrożenie, gdy warunek przestaje być spełniony.
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: odsetek-bledow
+spec:
+  args:
+    - name: service
+
+  metrics:
+    - name: odsetek-bledow
+      interval: 1m
+      # Dwie kolejne porażki kończą rollout — jedna może być przypadkiem
+      # przy starcie poda, dwie to już trend.
+      failureLimit: 2
+      # Zanim policzymy odsetek, musi być z czego liczyć.
+      count: 5
+      successCondition: result[0] < 0.05
+
+      provider:
+        prometheus:
+          address: http://monitoring-kube-prometheus-prometheus.monitoring:9090
+          query: |
+            sum(rate(quotes_requests_total{status=~"5..", app="{{args.service}}"}[2m]))
+            /
+            sum(rate(quotes_requests_total{app="{{args.service}}"}[2m]))
