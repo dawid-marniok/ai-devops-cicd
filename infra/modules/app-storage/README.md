@@ -59,3 +59,38 @@ zgłoszeniu.
 Różnica między tą tabelą a dopisaniem `#checkov:skip` w czterech miejscach jest taka,
 że tutaj decyzja jest zapisana razem z uzasadnieniem i da się ją zakwestionować przy
 następnym przeglądzie. Wyciszenie w kodzie znika z pola widzenia po tygodniu.
+
+## Zarejestrowany drift — SSH otwarty ręcznie na `security_group.aplikacja`
+
+**2026-09-24**, uczestnik `prowadzacy`: `terraform plan -refresh-only` wykrył regułę
+ingress TCP/22 z `0.0.0.0/0` na security group aplikacji (`sgr-055f50b14701f2d60`),
+której nie ma w tym module. CloudTrail potwierdza `AuthorizeSecurityGroupIngress`
+wykonane ręcznie przez AWS CLI (nie przez Terraform) o 09:10:27 CEST.
+
+**Decyzja: zmiana przypadkowa/niebezpieczna, kod zostaje bez zmian.** Ten moduł
+świadomie nie wystawia SSH z internetu (patrz tabela wyżej) — reguła narusza tę
+zasadę i konwencję z `.claude/CLAUDE.md` (żaden port poza 443 nie może mieć
+`0.0.0.0/0`). Nie adaptujemy jej do kodu.
+
+**Dlaczego zwykły `terraform plan` tego nie pokaże:** ten moduł zarządza regułami
+security group przez osobne zasoby (`aws_vpc_security_group_ingress_rule`), zgodnie
+z zaleceniami providera `hashicorp/aws` — `aws_security_group.aplikacja` nie ma
+inline `ingress`/`egress`. To poprawny wzorzec, ale ma efekt uboczny: reguła dodana
+poza Terraformem nie jest pod jego zarządzaniem, więc zwykły plan zwraca "No
+changes", nawet gdy w chmurze wisi otwarty port. Widać ją wyłącznie przez
+`-refresh-only`, w computed atrybutach `aws_security_group`.
+
+**Cofnięcie zmiany** — Terraform nie może tego zrobić za nas (nigdy nie zarządzał tą
+regułą), więc wymaga ręcznej akcji poza Terraformem:
+
+```
+aws ec2 revoke-security-group-ingress \
+  --group-id sg-0701410caf0b895d5 \
+  --security-group-rule-ids sgr-055f50b14701f2d60
+```
+
+**Jak zapobiec powtórce:** dostęp do modyfikacji security groups na koncie
+szkoleniowym powinien iść wyłącznie przez pipeline (OIDC), nie przez interaktywne
+AWS CLI uczestników/prowadzącego. Dodatkowo `terraform plan -refresh-only`
+powinno wejść do cyklicznego joba w CI (np. raz dziennie), bo to jedyny sposób,
+w jaki ten moduł w ogóle wykrywa tę klasę driftu.
