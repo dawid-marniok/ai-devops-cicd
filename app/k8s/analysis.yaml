@@ -1,27 +1,39 @@
 # Bramka jakości dla canary. Argo Rollouts odpytuje Prometheusa co minutę
-# i cofa wdrożenie, gdy warunek przestaje być spełniony.
+# i przerywa wdrożenie, gdy warunek przestaje być spełniony.
 apiVersion: argoproj.io/v1alpha1
 kind: AnalysisTemplate
 metadata:
   name: odsetek-bledow
 spec:
   args:
-    - name: service
+    - name: namespace
+    - name: canary-hash
 
   metrics:
     - name: odsetek-bledow
       interval: 1m
-      # Dwie kolejne porażki kończą rollout — jedna może być przypadkiem
-      # przy starcie poda, dwie to już trend.
-      failureLimit: 2
-      # Zanim policzymy odsetek, musi być z czego liczyć.
+      # Nowy pod canary potrzebuje ok. 2 minut, zanim `rate(...[2m])` ma z czego liczyć.
+      # Bez opóźnienia pierwsze pomiary kończą się błędem (brak serii), Argo ponawia je
+      # co 10 s i po 5 błędach przerywa rollout — z powodu braku danych, nie złej wersji.
+      initialDelay: 2m
+      # Liczba pomiarów w całej analizie (nie minimalna liczba żądań).
       count: 5
+      # Dwie nieudane oceny są tolerowane, trzecia (łącznie, nie muszą być kolejne)
+      # przerywa rollout. Jedna porażka może być przypadkiem przy starcie poda.
+      failureLimit: 2
       successCondition: result[0] < 0.05
 
       provider:
         prometheus:
           address: http://monitoring-kube-prometheus-prometheus.monitoring:9090
+          # Etykiety `namespace` i `wersja` (hash ReplicaSetu) dokłada OTel Collector.
+          # `or vector(0)` — zdrowa wersja może jeszcze nie mieć ani jednej serii 5xx.
+          # Brak ruchu nadal daje pusty wynik i błąd pomiaru — to celowe: brak danych
+          # nie jest dowodem, że wersja działa.
           query: |
-            sum(rate(quotes_requests_total{status=~"5..", app="{{args.service}}"}[2m]))
+            (
+              sum(rate(quotes_requests_total{namespace="{{args.namespace}}", wersja="{{args.canary-hash}}", status=~"5.."}[2m]))
+              or vector(0)
+            )
             /
-            sum(rate(quotes_requests_total{app="{{args.service}}"}[2m]))
+            sum(rate(quotes_requests_total{namespace="{{args.namespace}}", wersja="{{args.canary-hash}}"}[2m]))

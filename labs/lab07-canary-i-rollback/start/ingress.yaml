@@ -16,5 +16,8 @@ spec:
             backend:
               service:
                 name: quotes-api
+                # Argo Rollouts wpisuje wagi stable/canary do adnotacji
+                # `alb.ingress.kubernetes.io/actions.quotes-api`. Bez `use-annotation`
+                # ALB ignoruje wagi i kieruje ruch do wszystkich podów po równo.
                 port:
-                  number: 80
+                  name: use-annotation

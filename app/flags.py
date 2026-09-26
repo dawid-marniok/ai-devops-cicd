@@ -31,11 +31,20 @@ def _init_flagd() -> bool:
         return False
 
 
-def flag_enabled(key: str, context: dict | None = None) -> bool:
+def flag_enabled(key: str, context: dict | None = None, targeting_key: str | None = None) -> bool:
+    """Zwraca wartość flagi.
+
+    `targeting_key` identyfikuje odbiorcę — po nim `fractional` w flagd dzieli ruch
+    deterministycznie: ten sam użytkownik zawsze trafia do tej samej grupy.
+    """
     if _init_flagd():
         from openfeature import api
+        from openfeature.evaluation_context import EvaluationContext
 
-        return api.get_client().get_boolean_value(key, False, evaluation_context=context)
+        # SDK oczekuje obiektu EvaluationContext, nie słownika. Ze słownikiem ewaluacja
+        # kończy się wyjątkiem i SDK po cichu zwraca wartość domyślną (False).
+        ctx = EvaluationContext(targeting_key=targeting_key, attributes=context or {})
+        return api.get_client().get_boolean_value(key, False, evaluation_context=ctx)
     if _LOCAL_FLAGS.exists():
         data = json.loads(_LOCAL_FLAGS.read_text())
         flag = data.get("flags", {}).get(key, {})

@@ -8,16 +8,21 @@ Doprowadź aplikację do stanu, w którym przetrwa obciążenie, i dołóż pane
 
 ### Etap 1 — zmierz, zanim zmienisz (7 min)
 
+Lab korzysta z aplikacji wdrożonej w lab07. Polecenia uruchamiaj z głównego katalogu repo:
+
 ```bash
+cd "$(git rev-parse --show-toplevel)"
+set -a; source .env; set +a
 export NS=$UCZESTNIK
-kubectl apply -f start/hpa.yaml -n $NS
+kubectl apply -f labs/lab10-hpa-budzet-dashboard/start/hpa.yaml -n $NS
 kubectl get hpa,pods -n $NS -w      # zostaw na ekranie
 ```
 
-W drugim terminalu:
+W drugim terminalu, też z głównego katalogu:
 
 ```bash
-make load NS=$NS
+set -a; source .env; set +a
+./scripts/obciaz.sh $UCZESTNIK
 ```
 
 Zapisz trzy liczby:
@@ -28,7 +33,8 @@ Zapisz trzy liczby:
 
 ### Etap 2 — dostrój (10 min)
 
-`start/hpa.yaml` jest ustawiony źle: próg 90% i maksymalnie 3 repliki.
+`labs/lab10-hpa-budzet-dashboard/start/hpa.yaml` jest ustawiony źle: próg 90% i maksymalnie
+3 repliki. Po każdej zmianie ponów `kubectl apply` i ten sam test obciążenia.
 Zmień parametry tak, żeby p95 nie przekroczył 1 sekundy pod tym samym obciążeniem.
 
 Możesz poprosić agenta o propozycję — ale zmierz wynik sam. Zmiana, której efektu
@@ -46,7 +52,8 @@ Prompt: `prompts/blok5-guardrails.md`, sekcja „Dashboard".
 <details>
 <summary>Podpowiedź 1 — HPA pokazuje `<unknown>`</summary>
 
-Brakuje `metrics-server` albo kontener nie ma zdefiniowanych `resources.requests`.
+Brakuje `metrics-server` (sprawdź: `kubectl top pods -n $NS` — błąd `Metrics API not available`
+zgłoś prowadzącemu) albo kontener nie ma zdefiniowanych `resources.requests`.
 HPA liczy wykorzystanie jako procent **względem requests** — bez nich nie ma od czego liczyć.
 </details>
 

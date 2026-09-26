@@ -42,8 +42,15 @@ spec:
           - templateName: odsetek-bledow
         startingStep: 1
         args:
-          - name: service
-            value: quotes-api-canary
+          # Metryki filtrujemy po namespace (klaster jest wspólny) i po hashu
+          # szablonu poda canary — Service ani nazwa wersji nie trafiają do metryk.
+          - name: namespace
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: canary-hash
+            valueFrom:
+              podTemplateHashValue: Latest
 
   template:
     metadata:
@@ -54,16 +61,22 @@ spec:
         prometheus.io/port: "8000"
         prometheus.io/path: /metrics
     spec:
+      enableServiceLinks: false
       containers:
         - name: quotes-api
           image: PODMIEN_NA_ECR/quotes-api:v1
           ports:
             - containerPort: 8000
+          # APP_VERSION pochodzi z obrazu (build-arg w Dockerfile). Nie ustawiaj jej tutaj —
+          # wartość z manifestu nadpisałaby wersję obrazu i canary v2 wyglądałby jak v1.
           env:
-            - name: APP_VERSION
-              value: v1
+            # flagd działa w Twoim namespace (flagd.yaml), więc wystarczy krótka nazwa usługi.
             - name: FLAGD_HOST
-              value: flagd.flagd.svc.cluster.local
+              value: flagd
+            # Jawnie — inaczej Kubernetes wstrzyknąłby z usługi `flagd` zmienną
+            # FLAGD_PORT=tcp://<ip>:8013 i aplikacja po cichu wróciłaby do pliku flag.
+            - name: FLAGD_PORT
+              value: "8013"
           resources:
             requests: { cpu: 100m, memory: 128Mi }
             limits: { cpu: 500m, memory: 256Mi }

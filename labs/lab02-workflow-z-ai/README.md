@@ -7,16 +7,26 @@
 Napisz promptem workflow, który dla aplikacji z `app/` wykona: lint, testy, build obrazu
 i push do ECR. Ma przejść na zielono.
 
-Pracuj w `start/` — jest tam pusty katalog `.github/workflows/` i plik `README-zadanie.md`
-z danymi Twojego środowiska.
+Workflow GitHub Actions musi powstać w `.github/workflows/` **w głównym katalogu Twojego
+repozytorium**. GitHub nie wyszukuje workflow w `labs/.../start/.github/workflows/`.
+Katalog `start/` zawiera wyłącznie opis zadania i dane środowiska — nie przechodź do niego,
+aby tworzyć workflow.
 
 ```bash
-cd labs/lab02-workflow-z-ai/start
+cd "$(git rev-parse --show-toplevel)"
+cat labs/lab02-workflow-z-ai/start/README-zadanie.md
 claude       # albo Cline w VS Code — wybierz, czym chcesz dziś pracować
 ```
 
 Prompt startowy jest w `prompts/blok2-pipeline.md`, sekcja „Workflow od zera".
-Możesz go użyć wprost albo napisać własny.
+Możesz go użyć wprost albo napisać własny. Wynikiem ma być dokładnie plik:
+
+```text
+<root Twojego repo>/.github/workflows/deploy.yml
+```
+
+Każdy uczestnik wykonuje zadanie w swoim repozytorium lub forku. Katalog `.github/workflows/`
+jest wspólny dla całego repozytorium, nie dla pojedynczego labu ani użytkownika.
 
 ## Wymagania, które musi spełnić wynik
 
@@ -62,9 +72,17 @@ Koniec logu to prawie zawsze `Process completed with exit code 1`, czyli informa
 ## Weryfikacja
 
 ```bash
+cd "$(git rev-parse --show-toplevel)"
 actionlint .github/workflows/*.yml
+git add .github/workflows/deploy.yml
+git commit -m "Dodaj pipeline CI/CD"
+git push
 gh run watch
 ```
+
+Jeżeli `git rev-parse --show-toplevel` pokazuje katalog inny niż repozytorium, w którym chcesz
+uruchomić Actions, zatrzymaj się. Workflow zostanie zarejestrowany przez GitHub tylko wtedy,
+gdy plik `.github/workflows/deploy.yml` zostanie wypchnięty do tego konkretnego repozytorium.
 
 Po zakończeniu prowadzący pokaże wzorcowy workflow i porówna go z Waszymi wersjami.
 

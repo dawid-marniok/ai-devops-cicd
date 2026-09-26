@@ -23,7 +23,11 @@ dla takiej reguły:
 "Nowy format odpowiedzi endpointu /api/quote ma być widoczny dla 20% ruchu,
 a dodatkowo zawsze dla żądań z nagłówkiem X-Beta ustawionym na true."
 
-Zapisz do app/flags.json. Pokaż, jak sprawdzić działanie flagi bez wdrażania nowej
+Kontekst ewaluacji z aplikacji (app/main.py, app/flags.py): atrybut `beta` = wartość
+nagłówka X-Beta (tekst), `targetingKey` = nagłówek X-User-Id. Podział 20% ma być
+deterministyczny — ten sam użytkownik zawsze w tej samej grupie.
+
+Zapisz do labs/lab08-feature-flag-z-promptu/start/flags.json. Pokaż, jak sprawdzić działanie flagi bez wdrażania nowej
 wersji aplikacji.
 ```
 

@@ -18,12 +18,20 @@ Zamień hardkodowaną wartość na dynamic secret pobierany z Vaulta. Pipeline m
 cd labs/lab06-vault-w-pipeline/start
 ```
 
-Vault działa lokalnie — adres podaje prowadzący. Sprawdź, że widzisz poświadczenia:
+Vault stawia prowadzący — **adres i token podaje on**. Adres musi być osiągalny zarówno
+z Twojego laptopa, jak i z runnera GitHub Actions (`127.0.0.1` działa tylko u prowadzącego).
+Sprawdź, że widzisz poświadczenia:
 
 ```bash
-export VAULT_ADDR=http://127.0.0.1:8200
-export VAULT_TOKEN=root
+export VAULT_ADDR=<adres-od-prowadzącego>
+export VAULT_TOKEN=<token-od-prowadzącego>
 vault read database/creds/quotes-api
+```
+
+W swoim repo ustaw ten sam adres jako zmienną, której użyje workflow:
+
+```bash
+gh variable set VAULT_ADDR --body "$VAULT_ADDR"
 ```
 
 Uruchom to dwa razy i zwróć uwagę, co się zmienia.
@@ -52,9 +60,10 @@ metody uwierzytelniania (`jwt`) i nazwy roli (`quotes-api`).
 <details>
 <summary>Podpowiedź 2 — „Vault odmawia dostępu"</summary>
 
-Rola Vaulta ma `bound_subject` ustawiony na `repo:<org>/<repo>:ref:refs/heads/main`.
-Job z innej gałęzi dostanie odmowę — i tak ma być, to jest właśnie to ograniczenie,
-które ma tu działać.
+Rola Vaulta dopuszcza tylko token z gałęzi `main` konkretnego repozytorium. GitHub zapisuje
+je w claimie `sub` razem z niezmiennymi identyfikatorami, np.
+`repo:anna-k@12345/ai-devops-cicd@67890:ref:refs/heads/main`. Job z innej gałęzi albo
+z repo, którego prowadzący nie dodał do roli, dostanie odmowę — i tak ma być.
 
 Do ćwiczenia poproś prowadzącego o rozszerzenie roli albo pracuj na `main`.
 </details>
@@ -70,9 +79,12 @@ Interpolacja `${{ }}` wstawia wartość **wprost do tekstu skryptu**, zanim shel
 Wartość ląduje w liście procesów, a przy `set -x` również w logu.
 
 ```yaml
-env:
-  DB_PASSWORD: ${{ env.DB_PASSWORD }}
-run: psql "$DB_PASSWORD"               # dobrze
+- id: vault
+  uses: hashicorp/vault-action@v4
+  # ... secrets: database/creds/quotes-api password | DB_PASSWORD
+- env:
+    DB_PASSWORD: ${{ steps.vault.outputs.DB_PASSWORD }}
+  run: psql "$DB_PASSWORD"             # dobrze
 ```
 </details>
 

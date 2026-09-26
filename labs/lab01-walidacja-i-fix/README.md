@@ -90,8 +90,9 @@ nie pomyłek.
 **Skaner i tak nie widzi wszystkiego.** Otwarta reguła ingress na porcie 514 **nie zostanie
 zgłoszona przez Trivy** — reguła `AVD-AWS-0107` reaguje na porty uznane za wrażliwe
 (22, 3389), a nie na każdy adres `0.0.0.0/0`. Ten sam kod z portem 22 zamiast 514 zapala
-się na czerwono natychmiast. Sprawdzone na Trivy 0.62.1; zachowanie Checkova przy tej regule
-`[do sprawdzenia przed szkoleniem]`.
+się na czerwono natychmiast. Checkov też jej nie zgłasza (sprawdzone na Trivy 0.62.1
+i Checkov 3.3.19). Trivy zgłosi za to jako CRITICAL regułę **egress** na 443 — to nie jest
+jeden z trzech błędów, tylko decyzja do uzasadnienia (kolektor musi wysyłać do S3).
 
 To jest wniosek z tego labu: zielony skaner mówi „nie znalazłem znanych wzorców",
 a nie „ten kod jest bezpieczny".

@@ -6,12 +6,19 @@ code review, wdrożeniach Kubernetes i analizie incydentów.
 ## Przygotowanie
 
 ```bash
-./setup/check-prereqs.sh
-cp setup/env.example .env
-make test
+gh auth login                               # logowanie do GitHuba
+gh repo fork <repo-prowadzącego> --clone    # własna kopia repo
+cd ai-devops-cicd
+./setup/check-prereqs.sh                    # czego brakuje na laptopie
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r app/requirements-dev.txt     # zależności aplikacji
+cd app && pytest -q && cd ..                # 6 testów ma przejść
 ```
 
 Pełna instrukcja: [`setup/README.md`](setup/README.md).
+
+**Pracujesz we własnej kopii repozytorium** — w niej uruchamiasz GitHub Actions i ustawiasz
+zmienne (lab02, lab03, lab06). Jak ją założyć, opisuje `setup/README.md`, punkt 1.
 
 ## Ćwiczenia
 

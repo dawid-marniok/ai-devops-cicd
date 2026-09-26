@@ -6,10 +6,17 @@
 
 Dołóż do strażnika promptów regułę, która zatrzyma coś, czego domyślne skanery nie łapią.
 
+Zależności (~1 GB) instalowałeś przed dniem 2 (`setup/README.md`, punkt 7). Jeśli nie:
+
 ```bash
 cd labs/lab09-llm-firewall/start
-pip install -r requirements.txt
+python3 -m venv ../.venv
+../.venv/bin/pip install -r requirements.txt
+source ../.venv/bin/activate
 ```
+
+Skrypt wypisuje sporo linii logu biblioteki (`[debug]`, `[info]`). Liczy się ostatni
+komunikat — `ODRZUCONE…` albo `Przepuszczone.` — i kod wyjścia.
 
 ### Etap 1 — zobacz, gdzie jest granica (5 min)
 

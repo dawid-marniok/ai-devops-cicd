@@ -3,9 +3,8 @@
 ## Zmienne, które warto mieć w środowisku
 
 ```bash
+set -a; source .env; set +a         # UCZESTNIK, ECR_REPO… — set -a eksportuje zmienne
 export NS=$UCZESTNIK                # twój namespace
-export AWS_REGION=eu-central-1
-source .env                         # m.in. ECR_REPO przekazane przez prowadzącego
 export ADRES=$(kubectl -n $NS get ingress quotes-api -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
 ```
 
@@ -27,7 +26,7 @@ terraform show -json tfplan > plan.json  # plan dla Conftest
 tflint --recursive
 checkov -d . --compact
 trivy config .
-trivy image $ECR_REPO:v2
+trivy image ${ECR_REPO}:$NS-v2
 actionlint
 ```
 
@@ -49,7 +48,7 @@ kubectl get pods,svc,ingress -n $NS
 kubectl describe pod <pod> -n $NS          # sekcja "Last State" przy restartach
 kubectl logs <pod> -n $NS --previous       # log poprzedniej, zabitej instancji
 kubectl get events -n $NS --sort-by=.lastTimestamp
-kubectl top pods -n $NS
+kubectl top pods -n $NS                   # wymaga metrics-server w klastrze
 kubectl describe quota -n $NS              # gdy pody stoją w Pending
 ```
 
@@ -57,7 +56,7 @@ kubectl describe quota -n $NS              # gdy pody stoją w Pending
 
 ```bash
 kubectl argo rollouts get rollout quotes-api -n $NS --watch
-kubectl argo rollouts set image quotes-api quotes-api=$ECR_REPO:v2 -n $NS
+kubectl argo rollouts set image quotes-api quotes-api=${ECR_REPO}:$NS-v2 -n $NS
 kubectl argo rollouts promote quotes-api -n $NS      # kolejny krok wag
 kubectl argo rollouts promote quotes-api -n $NS --full
 kubectl argo rollouts undo quotes-api -n $NS         # wycofanie
@@ -83,16 +82,17 @@ vault policy read quotes-api
 /tco                koszt infrastruktury plus tokenów
 ```
 
-## Make
+## Aplikacja i skrypty repo
 
 ```bash
-make                # lista komend
-make app-local      # aplikacja lokalnie na :8000
-make test lint
-make tf-validate    # cztery warstwy walidacji
-make deploy NS=$NS VERSION=v2
-make canary / promote / rollback NS=$NS
-make load NS=$NS    # obciążenie do HPA i canary
+set -a; source .env; set +a; export NS=$UCZESTNIK   # w każdym nowym terminalu
+source .venv/bin/activate
+
+cd app && uvicorn main:app --reload --port 8000     # aplikacja lokalnie na :8000
+cd app && pytest -q && ruff check .                 # testy i lint
+./scripts/waliduj.sh                                # cztery warstwy walidacji Terraform
+./scripts/deploy.sh $NS v2                          # obraz → skan → canary
+./scripts/obciaz.sh $NS                             # obciążenie do HPA i canary
 ```
 
 ## Kody, które warto rozpoznawać od ręki

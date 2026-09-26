@@ -139,3 +139,6 @@ Drugi agent w repo: `recenzent-bezpieczenstwa` — ten sam wzorzec, inny zakres
 | Skill | `.claude/skills/<nazwa>/SKILL.md` | model, automatycznie po `description` (lub explicite) | zwykle ten sam wątek, część może odpalać się jako subagent w tle |
 | Hook | `.claude/hooks/*.sh` + wpis w `settings.json` | harness, na zdarzenie (`PreToolUse` itd.) | brak — to skrypt shellowy, nie LLM |
 | Agent (subagent) | `.claude/agents/*.md` | model, przez narzędzie `Agent` | osobny, świeży kontekst, ograniczony `tools` |
+
+Uprawnienia, tryby pracy i priorytety plików `settings.json` opisuje
+[claude-code-uprawnienia.md](claude-code-uprawnienia.md).

@@ -65,7 +65,8 @@ sprawdz python3   3.11  "Python"
 sprawdz tflint    0.50  "TFLint"
 sprawdz checkov   3.2   "Checkov"
 
-if kubectl argo rollouts version --client >/dev/null 2>&1; then
+# Plugin 1.x nie zna flagi --client; samo `version` nie łączy się z klastrem.
+if kubectl argo rollouts version >/dev/null 2>&1; then
   ok "Plugin kubectl-argo-rollouts"
 else
   fail "Plugin kubectl-argo-rollouts — instalacja: brew install argoproj/tap/kubectl-argo-rollouts"
@@ -98,6 +99,7 @@ fi
 
 naglowek "4. Narzędzia opcjonalne (przydadzą się, ale da się bez nich)"
 sprawdz gh        2.40  "GitHub CLI"                nie
+sprawdz actionlint 1.7  "actionlint (lab02, lab03)" nie
 sprawdz trivy     0.50  "Trivy"                     nie
 sprawdz conftest  0.56  "Conftest"                  nie
 sprawdz vault     1.15  "Vault CLI"                 nie

@@ -5,18 +5,21 @@
 ## Sytuacja
 
 `start/kosztowny.yml` to prawdziwy workflow z prawdziwego repozytorium. Działa poprawnie,
-przechodzi na zielono i **zużywa około 40 minut runnera na każdy push**.
+przechodzi na zielono i **zużywa około 40 minut rozliczeniowych runnera na każdy push**,
+choć na zegarku trwa kilka minut.
 
-Przy 30 pushach dziennie to jakieś 190 USD miesięcznie za jedno repozytorium.
+Skąd różnica: GitHub zaokrągla czas **każdego joba** w górę do pełnej minuty i mnoży minuty
+zależnie od systemu (w repo prywatnym Linux ×1, Windows ×2, macOS ×10). Dziewięć krótkich jobów
+lintu na trzech systemach kosztuje więcej niż cała reszta pipeline'u.
 
 ## Zadanie
 
-Zejdź **poniżej 8 minut**, nie usuwając żadnego kroku. Lint, testy, build, skan i artefakty
-mają dalej się wykonywać.
+Zejdź **poniżej 8 minut rozliczeniowych**, nie usuwając żadnego kroku. Lint, testy, build,
+skan i artefakty mają dalej się wykonywać.
 
 ```bash
-cd labs/lab03-cost-caps/start
-claude
+cd "$(git rev-parse --show-toplevel)"
+claude    # poproś o zmiany w labs/lab03-cost-caps/start/kosztowny.yml
 ```
 
 Prompt: `prompts/blok2-pipeline.md`, sekcja „Kontrola kosztów".
@@ -55,13 +58,26 @@ między jobami — każdy job dostaje czysty runner.
 
 ## Weryfikacja
 
+Z głównego katalogu repozytorium:
+
 ```bash
-actionlint start/kosztowny.yml
+actionlint labs/lab03-cost-caps/start/kosztowny.yml
 ```
 
-Potem porównaj wynik z wersją pokazaną przez prowadzącego. Twoje liczby nie muszą się
-zgadzać co do minuty;
-ważne, czy znalazłeś te same cztery dźwignie.
+Pomiar na GitHubie (opcjonalnie, we własnym repo). Workflow uruchamia się tylko ręcznie,
+żeby nie palił minut przy każdym pushu. **Uruchom go najwyżej dwa razy** — przed zmianą
+i po zmianie; w repo prywatnym jeden przebieg wersji startowej zużywa ok. 40 minut z limitu.
+
+```bash
+cp labs/lab03-cost-caps/start/kosztowny.yml .github/workflows/kosztowny.yml
+git add .github/workflows/kosztowny.yml && git commit -m "lab03: pomiar" && git push
+gh workflow run kosztowny.yml
+gh run list --workflow kosztowny.yml --limit 2
+gh api repos/{owner}/{repo}/actions/runs/<id>/timing   # czas każdego joba
+```
+
+Porównaj wynik z wersją pokazaną przez prowadzącego. Twoje liczby nie muszą się
+zgadzać co do minuty; ważne, czy znalazłeś te same cztery dźwignie.
 
 ## Pułapki
 

@@ -11,7 +11,9 @@ spec:
     name: quotes-api
 
   minReplicas: 2
-  maxReplicas: 10
+  # Canary z pełną wagą podwaja liczbę podów: 8 stable + 8 canary + flagd = 17,
+  # w limicie `pods: 20` namespace'u. Przy 10 canary nie zmieściłby się w quocie.
+  maxReplicas: 8
 
   metrics:
     - type: Resource

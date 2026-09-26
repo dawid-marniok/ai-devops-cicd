@@ -1,12 +1,14 @@
-# Workflow napisany „żeby działał". Działa. Kosztuje około 40 minut runnera na każdy push.
-# Nic tu nie jest błędem składniowym — wszystko jest marnotrawstwem.
+# Workflow napisany „żeby działał". Działa. Kosztuje około 40 minut rozliczeniowych
+# runnera na każde uruchomienie. Nic tu nie jest błędem składniowym — wszystko jest marnotrawstwem.
 name: kosztowny
 
-on: push
+# Na szkoleniu uruchamiany ręcznie (gh workflow run), żeby nie palić minut przy każdym pushu.
+# W oryginale było tu `on: push`.
+on: workflow_dispatch
 
 jobs:
   lint:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
@@ -36,7 +38,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: docker build -t quotes-api:${{ github.sha }} app/
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: app/
+          tags: quotes-api:${{ github.sha }}
+          cache-from: type=gha
 
   scan:
     needs: build

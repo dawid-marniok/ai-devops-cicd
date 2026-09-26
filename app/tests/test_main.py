@@ -32,3 +32,12 @@ def test_slow_ma_gorny_limit():
 def test_baner_pokazuje_wersje():
     r = client.get("/")
     assert "quotes-api" in r.text
+
+
+def test_wersja_broken_zwraca_czesc_bledow(monkeypatch):
+    import main
+
+    monkeypatch.setattr(main, "BROKEN_RATE", 1.0)
+    r = client.get("/api/quote")
+    assert r.status_code == 500
+    assert client.get("/healthz").status_code == 200

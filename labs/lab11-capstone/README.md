@@ -14,9 +14,14 @@ Doprowadź aplikację `quotes-api` w wersji `v2` do swojego namespace'u, przez p
 infrastruktura → obraz → skan → wdrożenie canary → obserwacja.
 
 ```bash
+cd "$(git rev-parse --show-toplevel)"
+set -a; source .env; set +a
 export NS=$UCZESTNIK
-make deploy NS=$NS VERSION=v2
+./scripts/deploy.sh $NS v2
 ```
+
+Obraz trafia do wspólnego ECR z tagiem `<uczestnik>-v2`, np. `anna-k-v2` — tak nikt
+nie nadpisze cudzej wersji. Jeśli w lab07 nie wdrażałeś aplikacji, skrypt utworzy ją od zera.
 
 ### Zanim klikniesz
 

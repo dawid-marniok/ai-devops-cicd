@@ -1,0 +1,62 @@
+# flagd w Twoim namespace — każdy uczestnik ma własne flagi i może je zmieniać
+# bez uprawnień do wspólnego namespace'u. Aplikacja łączy się z usługą `flagd`.
+#
+# Zmiana flag (lab08): podmień ConfigMap `flagd-config`, flagd przeładuje plik sam.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: flagd-config
+data:
+  flags.json: |
+    {
+      "$schema": "https://flagd.dev/schema/v0/flags.json",
+      "flags": {
+        "nowy-format-cytatu": {
+          "state": "ENABLED",
+          "variants": { "on": true, "off": false },
+          "defaultVariant": "off"
+        }
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flagd
+  labels: { app: flagd }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: flagd }
+  template:
+    metadata:
+      labels: { app: flagd }
+    spec:
+      containers:
+        - name: flagd
+          image: ghcr.io/open-feature/flagd:v0.10.2
+          args: ["start", "--port", "8013", "--uri", "file:/etc/flagd/flags.json"]
+          ports:
+            - { name: grpc, containerPort: 8013 }
+            - { name: probes, containerPort: 8014 }
+          # Namespace ma ResourceQuota — pod bez requests/limits zostałby odrzucony.
+          resources:
+            requests: { cpu: 20m, memory: 32Mi }
+            limits: { cpu: 200m, memory: 128Mi }
+          readinessProbe:
+            httpGet: { path: /readyz, port: 8014 }
+          volumeMounts:
+            - { name: config, mountPath: /etc/flagd }
+      volumes:
+        - name: config
+          configMap:
+            name: flagd-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flagd
+spec:
+  selector: { app: flagd }
+  ports:
+    - { name: grpc, port: 8013, targetPort: 8013 }

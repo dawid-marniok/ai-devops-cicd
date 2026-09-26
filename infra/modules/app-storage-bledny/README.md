@@ -15,4 +15,4 @@ checkov -d .           # zgłasza
 trivy config .         # zgłasza
 ```
 
-Pełny przebieg walidacji uruchomisz z katalogu głównego przez `make tf-validate`.
+Pełny przebieg walidacji uruchomisz z katalogu głównego przez `./scripts/waliduj.sh`.

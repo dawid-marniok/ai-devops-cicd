@@ -21,5 +21,5 @@ Zwraca poprawną listę. Testy przechodzą.
 ## Pliki
 
 - `app/ranking.py` — logika rankingu
-- `app/main.py` — rejestracja endpointu
+- `app/main.py` — rejestracja endpointu (jedna linijka, pominięta w tym ćwiczeniu)
 - `infra/iam-ranking.tf` — polityka IAM dla aplikacji

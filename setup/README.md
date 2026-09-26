@@ -2,7 +2,35 @@
 
 Wszystko poniżej zrób **przed** dniem 1. Na sali zaczynamy od razu od pracy.
 
-## 1. Sprawdź, czego Ci brakuje
+## 1. GitHub i własna kopia repozytorium
+
+Potrzebujesz zwykłego konta osobistego na GitHubie. Darmowy plan wystarcza — musisz móc
+założyć repozytorium i uruchamiać Actions.
+
+GitHub CLI (`gh`) jest już zainstalowany na maszynie szkoleniowej. Zaloguj się:
+
+```bash
+gh auth login                # GitHub.com → HTTPS → Login with a web browser
+gh auth status               # powinno pokazać Twój login
+```
+
+Jeśli na maszynie nie otworzy się przeglądarka, `gh` wypisze jednorazowy kod i adres
+`https://github.com/login/device`. Otwórz go na swoim laptopie i wklej kod.
+
+Workflow GitHub Actions i zmienne repozytorium (lab02, lab03, lab06) działają tylko
+w repozytorium, które należy do Ciebie. Po otrzymaniu dostępu od prowadzącego:
+
+```bash
+gh repo fork <repo-prowadzącego> --clone    # albo: Fork w przeglądarce, potem git clone
+cd ai-devops-cicd
+```
+
+**Wyślij prowadzącemu nazwę swojej kopii** (`login/ai-devops-cicd`). Bez tego rola AWS
+dla GitHub Actions nie przyjmie tokenu z Twojego repo i pipeline w lab02 nie zaloguje się do AWS.
+
+Wszystkie kolejne polecenia uruchamiasz w katalogu `ai-devops-cicd`.
+
+## 2. Sprawdź, czego Ci brakuje
 
 ```bash
 ./setup/check-prereqs.sh
@@ -10,26 +38,31 @@ Wszystko poniżej zrób **przed** dniem 1. Na sali zaczynamy od razu od pracy.
 
 Czerwone pozycje blokują udział w ćwiczeniach. Żółte możesz zignorować.
 
-## 2. Zainstaluj brakujące narzędzia
+## 3. Zainstaluj brakujące narzędzia
 
-| Narzędzie | Instalacja |
-|---|---|
-| Git | menedżer pakietów systemu |
-| Claude Code | `curl -fsSL https://claude.ai/install.sh \| bash` (macOS/Linux)<br>`irm https://claude.ai/install.ps1 \| iex` (Windows PowerShell) |
-| VS Code + Cline | VS Code → `Ctrl/Cmd+Shift+X` → wpisz „Cline" → Install |
-| Terraform | `brew install terraform` / `choco install terraform` / [releases](https://developer.hashicorp.com/terraform/downloads) |
-| Docker | Docker Desktop albo Docker Engine + CLI |
-| AWS CLI | `brew install awscli` / instalator MSI |
-| kubectl, Helm | `brew install kubectl helm` / `choco install kubernetes-cli kubernetes-helm` |
-| Plugin Argo Rollouts | `brew install argoproj/tap/kubectl-argo-rollouts` / [releases](https://github.com/argoproj/argo-rollouts/releases) |
-| TFLint | `brew install terraform-linters/tap/tflint` / [releases](https://github.com/terraform-linters/tflint/releases) |
-| Checkov | `brew install checkov` / `pip3 install checkov` |
-| gh *(opcjonalnie)* | `brew install gh` — ułatwia pracę z PR z terminala |
+Środowisko szkoleniowe to Linux (Ubuntu). Instaluj tylko to, co `check-prereqs.sh`
+oznaczył na czerwono.
 
-TFLint i Checkov są wymagane. Pozostałe narzędzia (`trivy`, `conftest` i `vault`) są
-opcjonalne — prowadzący pokaże je podczas demonstracji.
+| Narzędzie | Min. wersja | Instalacja |
+|---|---|---|
+| Claude Code | — | `curl -fsSL https://claude.ai/install.sh \| bash` |
+| VS Code | — | `sudo snap install code --classic` |
+| Cline | — | `code --install-extension saoudrizwan.claude-dev` (albo VS Code → `Ctrl+Shift+X` → „Cline” → Install) |
+| Python | 3.11 | `sudo apt install -y python3 python3-venv pipx` |
+| Terraform | 1.10 | repozytorium apt HashiCorp — [instrukcja](https://developer.hashicorp.com/terraform/install#linux), potem `sudo apt install -y terraform` |
+| Docker | — | `curl -fsSL https://get.docker.com \| sudo sh && sudo usermod -aG docker $USER` (potem wyloguj się i zaloguj ponownie) |
+| AWS CLI | 2.15 | `curl -fsSL https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -o awscliv2.zip && unzip -q awscliv2.zip && sudo ./aws/install` |
+| kubectl | 1.29 | `sudo snap install kubectl --classic` |
+| Helm | 3.14 | `sudo snap install helm --classic` |
+| Plugin Argo Rollouts | — | `curl -fsSLO https://github.com/argoproj/argo-rollouts/releases/latest/download/kubectl-argo-rollouts-linux-amd64 && sudo install kubectl-argo-rollouts-linux-amd64 /usr/local/bin/kubectl-argo-rollouts` |
+| TFLint | 0.50 | `curl -fsSL https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh \| bash` |
+| Checkov | 3.2 | `pipx install checkov && pipx ensurepath` |
+| actionlint *(opcjonalnie)* | 1.7 | `bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash) && sudo mv actionlint /usr/local/bin/` |
 
-## 3. Konta
+TFLint i Checkov są wymagane. Pozostałe narzędzia (`trivy`, `conftest`, `vault`, `actionlint`)
+są opcjonalne — prowadzący pokaże je podczas demonstracji.
+
+## 4. Konta
 
 ### Claude Code i Cline — jedna subskrypcja na oba narzędzia
 
@@ -60,40 +93,60 @@ aws sts get-caller-identity   # powinno pokazać Twojego użytkownika
 Dzień 2, dostęp do klastra:
 
 ```bash
+set -a; source .env; set +a     # UCZESTNIK i ECR_REPO, patrz „Plik .env” niżej
 aws eks update-kubeconfig --name szkolenie-ai-devops --region eu-central-1
-kubectl get pods -n $UCZESTNIK
+kubectl get pods -n $UCZESTNIK  # "No resources found" to poprawny wynik
 ```
 
-### GitHub
+Grafana (dashboardy w lab07, lab10, lab11) działa w klastrze — adres i hasło poda prowadzący.
 
-Zwykłe konto osobiste. Darmowy plan wystarcza — potrzebujesz móc założyć repozytorium
-i uruchamiać Actions.
-
-## 4. Skonfiguruj repo
+## 5. Środowisko Python i testy
 
 ```bash
-cp setup/env.example .env
-# uzupełnij UCZESTNIK i dane z punktu 3
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r app/requirements-dev.txt
+cd app && pytest -q && cd ..    # 6 testów ma przejść
 ```
 
-`Makefile` automatycznie wczytuje `.env`. Dla poleceń uruchamianych bezpośrednio
-w terminalu załaduj i wyeksportuj wartości:
+`source .venv/bin/activate` powtarzasz w każdym nowym terminalu, w którym używasz
+`pytest`, `ruff`, `uvicorn` albo `python` z zależnościami aplikacji.
+
+## 6. Sprawdź, że aplikacja startuje
 
 ```bash
-set -a
-source .env
-set +a
-```
-
-## 5. Sprawdź, że aplikacja startuje
-
-```bash
-make app-local
+cd app && uvicorn main:app --reload --port 8000
 # w drugim terminalu:
 curl localhost:8000/healthz
 ```
 
 Jeśli to działa, jesteś gotowy.
+
+## Plik .env — dzień 2
+
+Laby dnia 2 (lab07, lab08, lab10, lab11) potrzebują dwóch wartości, które poda prowadzący:
+Twojego identyfikatora i adresu rejestru obrazów. Zapisz je w pliku `.env`
+(jest w `.gitignore`, nie trafi do repo):
+
+```bash
+cp setup/env.example .env
+# uzupełnij UCZESTNIK i ECR_REPO
+```
+
+Na początku każdego labu, w każdym terminalu, wczytujesz je poleceniem:
+
+```bash
+set -a; source .env; set +a
+```
+
+## 7. Przed dniem 2 — strażnik promptów (lab09)
+
+Zależności labu 09 ważą około 1 GB, dlatego zainstaluj je wcześniej, w osobnym venv:
+
+```bash
+python3 -m venv labs/lab09-llm-firewall/.venv
+labs/lab09-llm-firewall/.venv/bin/pip install -r labs/lab09-llm-firewall/start/requirements.txt
+```
 
 ## Jeśli coś nie działa w dniu szkolenia
 

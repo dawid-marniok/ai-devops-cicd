@@ -11,8 +11,10 @@ Jesteś recenzentem.
 
 ## Zadanie
 
-W `start/` są trzy pliki tego pull requesta i jego opis. Zawierają **trzy celowo wprowadzone
-błędy**: jeden bezpieczeństwa, jeden wydajnościowy, jeden stylistyczny.
+W `start/` jest opis PR (`PR-opis.md`) i dwa zmienione pliki: `iam-ranking.tf` i `ranking.py`.
+Rejestrację endpointu w `app/main.py` pomijamy — to jedna linijka bez znaczenia dla zadania.
+Kod to fragment większego modułu, więc `terraform validate` na nim nie zadziała — czytasz go
+jak diff w PR. Pliki zawierają **trzy celowo wprowadzone błędy**: jeden bezpieczeństwa, jeden wydajnościowy, jeden stylistyczny.
 
 Zadanie ma dwie części — zrób je w tej kolejności, nie na odwrót.
 
@@ -37,7 +39,7 @@ Na koniec porównajcie w grupie: **ile osób znalazło błąd, którego nie znal
 <details>
 <summary>Podpowiedź 1 — gdzie w ogóle patrzeć</summary>
 
-Trzy pliki, trzy różne rodzaje problemu:
+Dwa pliki, trzy różne rodzaje problemu:
 
 - `iam-ranking.tf` — jaki dokładnie dostęp dostaje aplikacja i do czego
 - `ranking.py` — co się stanie, gdy lista cytatów urośnie do tysiąca pozycji
