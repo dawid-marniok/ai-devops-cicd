@@ -101,24 +101,25 @@ Czerwone pozycje blokują udział w ćwiczeniach. Żółte możesz zignorować.
 
 ## 3. Zainstaluj brakujące narzędzia
 
-Środowisko szkoleniowe to Linux (Ubuntu). Instaluj tylko to, co `check-prereqs.sh`
-oznaczył na czerwono.
+Środowisko szkoleniowe to Linux (Ubuntu). Większość narzędzi jest już zainstalowana
+na maszynie. Na starcie doinstalowujesz trzy: TFLint, Checkov i plugin Argo Rollouts.
+Po instalacji uruchom ponownie `./setup/check-prereqs.sh` — nie powinno być nic na czerwono.
 
-| Narzędzie | Min. wersja | Instalacja |
-|---|---|---|
-| Claude Code | — | `curl -fsSL https://claude.ai/install.sh \| bash` |
-| VS Code | — | `sudo snap install code --classic` |
-| Cline | — | `code --install-extension saoudrizwan.claude-dev` (albo VS Code → `Ctrl+Shift+X` → „Cline” → Install) |
-| Python | 3.11 | `sudo apt install -y python3 python3-venv pipx` |
-| Terraform | 1.10 | repozytorium apt HashiCorp — [instrukcja](https://developer.hashicorp.com/terraform/install#linux), potem `sudo apt install -y terraform` |
-| Docker | — | `curl -fsSL https://get.docker.com \| sudo sh && sudo usermod -aG docker $USER` (potem wyloguj się i zaloguj ponownie) |
-| AWS CLI | 2.15 | `curl -fsSL https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -o awscliv2.zip && unzip -q awscliv2.zip && sudo ./aws/install` |
-| kubectl | 1.29 | `sudo snap install kubectl --classic` |
-| Helm | 3.14 | `sudo snap install helm --classic` |
-| Plugin Argo Rollouts | — | `curl -fsSLO https://github.com/argoproj/argo-rollouts/releases/latest/download/kubectl-argo-rollouts-linux-amd64 && sudo install kubectl-argo-rollouts-linux-amd64 /usr/local/bin/kubectl-argo-rollouts` |
-| TFLint | 0.50 | `curl -fsSL https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh \| bash` |
-| Checkov | 3.2 | `pipx install checkov && pipx ensurepath` |
-| actionlint *(opcjonalnie)* | 1.7 | `bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash) && sudo mv actionlint /usr/local/bin/` |
+| Narzędzie | Min. wersja | Na maszynie | Instalacja |
+|---|---|---|---|
+| **TFLint** | 0.50 | ⬜ instalujesz | `curl -fsSL https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh \| bash` |
+| **Checkov** | 3.2 | ⬜ instalujesz | `sudo apt install -y pipx && pipx install checkov && pipx ensurepath` (potem otwórz nowy terminal) |
+| **Plugin Argo Rollouts** | — | ⬜ instalujesz | `curl -fsSLO https://github.com/argoproj/argo-rollouts/releases/latest/download/kubectl-argo-rollouts-linux-amd64 && sudo install kubectl-argo-rollouts-linux-amd64 /usr/local/bin/kubectl-argo-rollouts` |
+| actionlint *(opcjonalnie)* | 1.7 | ⬜ opcjonalnie | `bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash) && sudo mv actionlint /usr/local/bin/` |
+| Git, GitHub CLI | 2.30 / 2.40 | ✅ jest | — |
+| Python | 3.11 | ✅ jest | — |
+| Terraform | 1.10 | ✅ jest | — |
+| AWS CLI | 2.15 | ✅ jest | — |
+| kubectl | 1.29 | ✅ jest | — |
+| Helm | 3.14 | ✅ jest | — |
+| Docker | — | ✅ jest | — |
+| Claude Code | — | ✅ jest | — |
+| VS Code + Cline | — | ✅ jest | — |
 
 TFLint i Checkov są wymagane. Pozostałe narzędzia (`trivy`, `conftest`, `vault`, `actionlint`)
 są opcjonalne — prowadzący pokaże je podczas demonstracji.

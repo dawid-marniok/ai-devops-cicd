@@ -69,12 +69,12 @@ sprawdz checkov   3.2   "Checkov"
 if kubectl argo rollouts version >/dev/null 2>&1; then
   ok "Plugin kubectl-argo-rollouts"
 else
-  fail "Plugin kubectl-argo-rollouts — instalacja: brew install argoproj/tap/kubectl-argo-rollouts"
+  fail "Plugin kubectl-argo-rollouts — instalacja: setup/README.md, punkt 3"
 fi
 
 if command -v docker >/dev/null 2>&1; then
   if docker info >/dev/null 2>&1; then ok "Docker — działa"
-  else fail "Docker zainstalowany, ale daemon nie odpowiada (uruchom Docker Desktop)"; fi
+  else fail "Docker zainstalowany, ale daemon nie odpowiada (sudo systemctl start docker; czy jesteś w grupie docker? groups)"; fi
 else
   fail "Docker — brak w PATH"
 fi
