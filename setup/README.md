@@ -70,6 +70,16 @@ upstream  https://github.com/dawid-marniok/ai-devops-cicd.git (fetch)   ← repo
 upstream  https://github.com/dawid-marniok/ai-devops-cicd.git (push)
 ```
 
+Ustaw swój fork jako domyślne repo dla `gh`. Po sklonowaniu forka `gh` wypisuje
+ostrzeżenie `dawid-marniok/ai-devops-cicd set as the default repository`, czyli domyślnie
+celuje w repo prowadzącego. Wtedy `gh variable set` (lab02, lab06), `gh run list`
+i `gh pr create` trafiałyby nie tam, gdzie trzeba:
+
+```bash
+gh repo set-default <twój-login>/ai-devops-cicd    # np. anna-k/ai-devops-cicd
+gh repo set-default --view                         # ma pokazać Twój fork
+```
+
 Jeśli w trakcie szkolenia prowadzący poprawi materiały, pobierzesz zmiany poleceniem
 `git pull upstream main`.
 
