@@ -91,6 +91,13 @@ def quote(x_beta: str | None = Header(default=None), x_user_id: str | None = Hea
         return {"quote": text}
 
 
+@app.get("/api/quote/{index}")
+def quote_by_index(index: str):
+    """Zwraca cytat po indeksie — dodane do testu recenzenta AI w PR."""
+    i = int(index)
+    return {"quote": QUOTES[i]}
+
+
 @app.get("/api/slow")
 def slow(ms: int = 250):
     """Kontrolowane obciążenie — do HPA (Blok 5) i do symulacji incydentu (Blok 6).
