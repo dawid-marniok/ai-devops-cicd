@@ -5,16 +5,27 @@
 ## Sytuacja
 
 `start/kosztowny.yml` to prawdziwy workflow z prawdziwego repozytorium. Działa poprawnie,
-przechodzi na zielono i **zużywa około 40 minut rozliczeniowych runnera na każdy push**,
-choć na zegarku trwa kilka minut.
+przechodzi na zielono i na zegarku trwa około 2,5 minuty. W repo prywatnym jeden przebieg
+kosztuje jednak **około 43 minut w przeliczeniu na Linuksa** (0,26 USD).
 
-Skąd różnica: GitHub zaokrągla czas **każdego joba** w górę do pełnej minuty i mnoży minuty
-zależnie od systemu (w repo prywatnym Linux ×1, Windows ×2, macOS ×10). Dziewięć krótkich jobów
-lintu na trzech systemach kosztuje więcej niż cała reszta pipeline'u.
+Skąd różnica:
+
+- GitHub zaokrągla czas **każdego joba** w górę do pełnej minuty. Workflow ma 13 jobów,
+  więc nawet 10-sekundowy lint liczy się jako minuta.
+- Minuta kosztuje różnie zależnie od systemu: Linux 0,006 USD, Windows 0,010 USD,
+  macOS 0,062 USD, czyli ponad 10 razy drożej niż Linux
+  ([cennik GitHub](https://docs.github.com/en/billing/reference/actions-runner-pricing), sprawdzony 2026-09-26).
+
+Pomiar z 2026-09-26: 7 jobów na Linuksie (7 min), 3 na Windows (3 min), 3 na macOS (3 min).
+Same trzy joby lintu na macOS kosztują więcej niż cała reszta pipeline'u.
+
+W repo publicznym, takim jak Twój fork, GitHub nie pobiera opłat za standardowe runnery.
+Zaokrąglanie i proporcje działają jednak tak samo jak w firmowym repo prywatnym, więc liczymy
+koszt, jaki byłby tam.
 
 ## Zadanie
 
-Zejdź **poniżej 8 minut rozliczeniowych**, nie usuwając żadnego kroku. Lint, testy, build,
+Zejdź **poniżej 8 minut w przeliczeniu na Linuksa** (ok. 0,05 USD), nie usuwając żadnego kroku. Lint, testy, build,
 skan i artefakty mają dalej się wykonywać.
 
 ```bash
@@ -61,20 +72,46 @@ między jobami — każdy job dostaje czysty runner.
 Z głównego katalogu repozytorium:
 
 ```bash
-actionlint labs/lab03-cost-caps/start/kosztowny.yml
+actionlint labs/lab03-cost-caps/start/kosztowny.yml; echo "kod wyjścia: $?"
 ```
 
-Pomiar na GitHubie (opcjonalnie, we własnym repo). Workflow uruchamia się tylko ręcznie,
-żeby nie palił minut przy każdym pushu. **Uruchom go najwyżej dwa razy** — przed zmianą
-i po zmianie; w repo prywatnym jeden przebieg wersji startowej zużywa ok. 40 minut z limitu.
+Brak komunikatów i `kod wyjścia: 0` oznaczają, że workflow jest poprawny. actionlint wypisuje
+tylko błędy, np. literówkę w `needs:` albo odwołanie do nieistniejącego joba:
+
+```text
+labs/lab03-cost-caps/start/kosztowny.yml:48:3: job "scan" needs job "biuld" which does not exist in this workflow [job-needs]
+   |
+48 |   scan:
+   |   ^~~~~
+```
+
+actionlint nie mierzy kosztów. Sprawdza tylko, czy po Twoich zmianach workflow nadal
+się uruchomi — przy przestawianiu `needs:` i łączeniu jobów łatwo o taki błąd.
+
+Pomiar na GitHubie (opcjonalnie, w swoim forku). Workflow uruchamia się tylko ręcznie.
+Uruchom go dwa razy: wersję startową i wersję po zmianach. W publicznym forku przebiegi
+są darmowe, ale w repo prywatnym każdy przebieg wersji startowej zużyłby ok. 43 minuty limitu.
 
 ```bash
 cp labs/lab03-cost-caps/start/kosztowny.yml .github/workflows/kosztowny.yml
 git add .github/workflows/kosztowny.yml && git commit -m "lab03: pomiar" && git push
 gh workflow run kosztowny.yml
 gh run list --workflow kosztowny.yml --limit 2
-gh api repos/{owner}/{repo}/actions/runs/<id>/timing   # czas każdego joba
+./labs/lab03-cost-caps/koszt-przebiegu.sh <id>          # koszt przebiegu jak w repo prywatnym
 ```
+
+Przykładowy wynik dla wersji startowej:
+
+```text
+linux: 7 jobów, 7 min × 0.006 USD = 0.042 USD
+macos: 3 jobów, 3 min × 0.062 USD = 0.186 USD
+windows: 3 jobów, 3 min × 0.01 USD = 0.03 USD
+RAZEM: 0.258 USD, czyli 43 min w przeliczeniu na Linuksa
+```
+
+Skrypt liczy z czasów jobów, bo w repo publicznym `gh api …/runs/<id>/timing` zwraca
+`total_ms: 0` dla każdego systemu. `{owner}/{repo}` to domyślne repo `gh`, dlatego
+fork musi być ustawiony przez `gh repo set-default` (setup, punkt 1).
 
 Porównaj wynik z wersją pokazaną przez prowadzącego. Twoje liczby nie muszą się
 zgadzać co do minuty; ważne, czy znalazłeś te same cztery dźwignie.
