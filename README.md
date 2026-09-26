@@ -6,13 +6,13 @@ code review, wdrożeniach Kubernetes i analizie incydentów.
 ## Przygotowanie
 
 ```bash
-gh auth login                               # logowanie do GitHuba
-gh repo fork <repo-prowadzącego> --clone    # własna kopia repo
+gh auth login                                       # logowanie do GitHuba
+gh repo fork dawid-marniok/ai-devops-cicd --clone   # własna kopia repo
 cd ai-devops-cicd
-./setup/check-prereqs.sh                    # czego brakuje na laptopie
+./setup/check-prereqs.sh                            # czego brakuje na laptopie
 python3 -m venv .venv && source .venv/bin/activate
-pip install -r app/requirements-dev.txt     # zależności aplikacji
-cd app && pytest -q && cd ..                # 6 testów ma przejść
+pip install -r app/requirements-dev.txt             # zależności aplikacji
+cd app && pytest -q && cd ..                        # 6 testów ma przejść
 ```
 
 Pełna instrukcja: [`setup/README.md`](setup/README.md).

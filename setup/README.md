@@ -17,15 +17,66 @@ gh auth status               # powinno pokazać Twój login
 Jeśli na maszynie nie otworzy się przeglądarka, `gh` wypisze jednorazowy kod i adres
 `https://github.com/login/device`. Otwórz go na swoim laptopie i wklej kod.
 
-Workflow GitHub Actions i zmienne repozytorium (lab02, lab03, lab06) działają tylko
-w repozytorium, które należy do Ciebie. Po otrzymaniu dostępu od prowadzącego:
+**Okno „Authentication required … no longer matches that of your login keyring”.**
+To nie jest błąd GitHuba, tylko systemowy magazyn haseł (GNOME Keyring). `gh` i Chrome
+próbują w nim zapisać dane, a keyring ma inne hasło niż Twoje obecne konto na maszynie.
+Linie `DEPRECATED_ENDPOINT` i `ConnectionHandler failed` w terminalu to logi Chrome —
+możesz je zignorować.
+
+Najprościej: kliknij **Anuluj**, przerwij `gh` (`Ctrl+C`) i zaloguj się bez keyringa —
+token trafi do pliku `~/.config/gh/hosts.yml`:
 
 ```bash
-gh repo fork <repo-prowadzącego> --clone    # albo: Fork w przeglądarce, potem git clone
+gh auth login --insecure-storage
+gh auth status
+```
+
+Jeśli okno ma przestać wyskakiwać, usuń keyring i przy następnym pytaniu ustaw mu
+**aktualne hasło logowania do maszyny**:
+
+```bash
+rm -f ~/.local/share/keyrings/login.keyring
+```
+
+Kod z `gh auth login` jest jednorazowy i wygasa po kilku minutach — przy ponownej
+próbie dostaniesz nowy.
+
+Workflow GitHub Actions i zmienne repozytorium (lab02, lab03, lab06) działają tylko
+w repozytorium, które należy do Ciebie. Dlatego robisz **fork**, czyli własną kopię repo
+na swoim koncie GitHub, i klonujesz ją na maszynę:
+
+```bash
+cd ~
+gh repo fork dawid-marniok/ai-devops-cicd --clone
 cd ai-devops-cicd
 ```
 
-**Wyślij prowadzącemu nazwę swojej kopii** (`login/ai-devops-cicd`). Bez tego rola AWS
+Przykład dla użytkownika `anna-k`:
+
+```text
+$ gh repo fork dawid-marniok/ai-devops-cicd --clone
+✓ Created fork anna-k/ai-devops-cicd
+Cloning into 'ai-devops-cicd'...
+✓ Cloned fork
+```
+
+Sprawdź, czy zdalne repozytoria są ustawione poprawnie:
+
+```text
+$ git remote -v
+origin    https://github.com/anna-k/ai-devops-cicd.git (fetch)          ← Twój fork, tu pushujesz
+origin    https://github.com/anna-k/ai-devops-cicd.git (push)
+upstream  https://github.com/dawid-marniok/ai-devops-cicd.git (fetch)   ← repo prowadzącego
+upstream  https://github.com/dawid-marniok/ai-devops-cicd.git (push)
+```
+
+Jeśli w trakcie szkolenia prowadzący poprawi materiały, pobierzesz zmiany poleceniem
+`git pull upstream main`.
+
+Bez `gh`: na stronie https://github.com/dawid-marniok/ai-devops-cicd kliknij **Fork**,
+a potem `git clone https://github.com/<twój-login>/ai-devops-cicd.git`.
+
+**Wyślij prowadzącemu nazwę swojej kopii** (w przykładzie: `anna-k/ai-devops-cicd`). Bez tego rola AWS
 dla GitHub Actions nie przyjmie tokenu z Twojego repo i pipeline w lab02 nie zaloguje się do AWS.
 
 Wszystkie kolejne polecenia uruchamiasz w katalogu `ai-devops-cicd`.
