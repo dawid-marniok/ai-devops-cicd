@@ -140,6 +140,25 @@ Cline może korzystać z tej samej subskrypcji — nie potrzebujesz osobnego klu
 W tym trybie odpowiedzi nie strumieniują się token po tokenie — pojawiają się naraz po chwili.
 Dla ćwiczeń z code review nie ma to znaczenia.
 
+### Model: Sonnet 5, nie Opus
+
+Na szkoleniu używamy modelu **Sonnet 5**. Wystarcza do wszystkich ćwiczeń, jest szybszy
+i nie wyczerpuje tak szybko limitu subskrypcji jak Opus. Ustaw go przed pierwszą pracą:
+
+```bash
+claude --model sonnet     # uruchomienie z Sonnetem
+```
+
+albo w już działającej sesji Claude Code:
+
+```text
+/model sonnet
+```
+
+Sprawdzenie: `/status` pokazuje aktualny model — ma być `claude-sonnet-5`.
+
+W Cline: Settings → API Configuration → pole **Model** → wybierz Sonnet 5 (`claude-sonnet-5`).
+
 ### AWS
 
 Konto szkoleniowe i użytkownika IAM dostajesz od prowadzącego — **nie używaj konta firmowego**.
