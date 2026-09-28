@@ -121,27 +121,24 @@ resource "aws_security_group" "aplikacja" {
   description = "Security group aplikacji quotes-api - wylacznie ruch HTTPS"
   vpc_id      = aws_vpc.glowna.id
 
+  # Reguły zadeklarowane inline (nie jako osobne aws_vpc_security_group_*_rule),
+  # żeby ten security group był autorytatywny: terraform plan wykryje i cofnie
+  # każdą regułę dodaną poza Terraformem (np. ręcznie w konsoli AWS).
+  ingress {
+    description = "Ruch HTTPS z internetu"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    description = "Ruch wychodzacy HTTPS"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   tags = merge(local.tags, { Name = "${local.prefix}-app-${var.uczestnik}" })
-}
-
-resource "aws_vpc_security_group_ingress_rule" "https" {
-  security_group_id = aws_security_group.aplikacja.id
-  description       = "Ruch HTTPS z internetu"
-  cidr_ipv4         = "0.0.0.0/0"
-  from_port         = 443
-  to_port           = 443
-  ip_protocol       = "tcp"
-
-  tags = local.tags
-}
-
-resource "aws_vpc_security_group_egress_rule" "https" {
-  security_group_id = aws_security_group.aplikacja.id
-  description       = "Ruch wychodzacy HTTPS"
-  cidr_ipv4         = "0.0.0.0/0"
-  from_port         = 443
-  to_port           = 443
-  ip_protocol       = "tcp"
-
-  tags = local.tags
 }
