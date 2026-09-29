@@ -1,0 +1,59 @@
+# Workflow napisany „żeby działał". Działa. Kosztuje około 13 minut runnera na każdy push (13 jobów).
+# Nic tu nie jest błędem składniowym — wszystko jest marnotrawstwem.
+name: kosztowny
+
+on: push
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: pip install -r app/requirements-dev.txt
+      - run: ruff check app/
+
+  test:
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r app/requirements-dev.txt
+      - run: pytest -q
+        working-directory: app
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t quotes-api:${{ github.sha }} app/
+
+  scan:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t quotes-api:${{ github.sha }} app/
+      - uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: quotes-api:${{ github.sha }}
+
+  artefakty:
+    needs: scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/upload-artifact@v4
+        with:
+          name: zrodla
+          path: app/
