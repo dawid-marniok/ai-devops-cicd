@@ -1,7 +1,7 @@
 # Infrastruktura pod quotes-api. Konwencje nazw i tagów: .claude/CLAUDE.md
 
 locals {
-  prefix = "szkolenie-${var.blok}"
+  prefix = "szkolenie-${var.blok}-${var.uczestnik}"
 
   tags = {
     Projekt   = "ai-devops-cicd"
@@ -18,9 +18,8 @@ data "aws_availability_zones" "dostepne" {
 # ── Bucket na artefakty buildów ──────────────────────────────────────
 
 resource "aws_s3_bucket" "artefakty" {
-  bucket = "${local.prefix}-artifacts-${var.uczestnik}"
-
-  tags = local.tags
+  bucket = "${local.prefix}-artifacts"
+  tags   = local.tags
 }
 
 resource "aws_s3_bucket_versioning" "artefakty" {
@@ -38,10 +37,10 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "artefakty" {
     apply_server_side_encryption_by_default {
       sse_algorithm = "AES256"
     }
-    bucket_key_enabled = true
   }
 }
 
+# Bez tego zasobu bucket jest prywatny tylko dopóki ktoś nie doda mu polityki.
 resource "aws_s3_bucket_public_access_block" "artefakty" {
   bucket = aws_s3_bucket.artefakty.id
 
@@ -51,37 +50,55 @@ resource "aws_s3_bucket_public_access_block" "artefakty" {
   restrict_public_buckets = true
 }
 
-# ── VPC z podsiecią publiczną i prywatną ─────────────────────────────
+# Artefakty buildów nie są danymi, które trzymamy latami.
+resource "aws_s3_bucket_lifecycle_configuration" "artefakty" {
+  bucket = aws_s3_bucket.artefakty.id
+
+  rule {
+    id     = "usun-stare-artefakty"
+    status = "Enabled"
+
+    filter {}
+
+    expiration {
+      days = 30
+    }
+
+    noncurrent_version_expiration {
+      noncurrent_days = 7
+    }
+  }
+}
+
+# ── Sieć ─────────────────────────────────────────────────────────────
 
 resource "aws_vpc" "glowna" {
   cidr_block           = var.cidr_vpc
   enable_dns_support   = true
   enable_dns_hostnames = true
 
-  tags = merge(local.tags, { Name = "${local.prefix}-vpc-${var.uczestnik}" })
+  tags = merge(local.tags, { Name = "${local.prefix}-vpc" })
 }
 
 resource "aws_subnet" "publiczna" {
-  vpc_id                  = aws_vpc.glowna.id
-  cidr_block              = var.cidr_subnet_publiczna
-  availability_zone       = data.aws_availability_zones.dostepne.names[0]
-  map_public_ip_on_launch = true
+  vpc_id            = aws_vpc.glowna.id
+  cidr_block        = cidrsubnet(var.cidr_vpc, 8, 1)
+  availability_zone = data.aws_availability_zones.dostepne.names[0]
 
-  tags = merge(local.tags, { Name = "${local.prefix}-public-${var.uczestnik}" })
+  tags = merge(local.tags, { Name = "${local.prefix}-public" })
 }
 
 resource "aws_subnet" "prywatna" {
   vpc_id            = aws_vpc.glowna.id
-  cidr_block        = var.cidr_subnet_prywatna
-  availability_zone = data.aws_availability_zones.dostepne.names[0]
+  cidr_block        = cidrsubnet(var.cidr_vpc, 8, 2)
+  availability_zone = data.aws_availability_zones.dostepne.names[1]
 
-  tags = merge(local.tags, { Name = "${local.prefix}-private-${var.uczestnik}" })
+  tags = merge(local.tags, { Name = "${local.prefix}-private" })
 }
 
 resource "aws_internet_gateway" "glowna" {
   vpc_id = aws_vpc.glowna.id
-
-  tags = merge(local.tags, { Name = "${local.prefix}-igw-${var.uczestnik}" })
+  tags   = merge(local.tags, { Name = "${local.prefix}-igw" })
 }
 
 resource "aws_route_table" "publiczna" {
@@ -92,7 +109,7 @@ resource "aws_route_table" "publiczna" {
     gateway_id = aws_internet_gateway.glowna.id
   }
 
-  tags = merge(local.tags, { Name = "${local.prefix}-public-rt-${var.uczestnik}" })
+  tags = merge(local.tags, { Name = "${local.prefix}-rt-public" })
 }
 
 resource "aws_route_table_association" "publiczna" {
@@ -100,45 +117,32 @@ resource "aws_route_table_association" "publiczna" {
   route_table_id = aws_route_table.publiczna.id
 }
 
-# Podsieć prywatna celowo bez trasy do internetu (brak NAT Gateway) —
-# ćwiczenie nie wymaga ruchu wychodzącego z tej podsieci. Dodanie NAT
-# Gateway to świadoma decyzja kosztowa, poza zakresem tego modułu.
-resource "aws_route_table" "prywatna" {
-  vpc_id = aws_vpc.glowna.id
-
-  tags = merge(local.tags, { Name = "${local.prefix}-private-rt-${var.uczestnik}" })
-}
-
-resource "aws_route_table_association" "prywatna" {
-  subnet_id      = aws_subnet.prywatna.id
-  route_table_id = aws_route_table.prywatna.id
-}
-
-# ── Security group aplikacji: tylko HTTPS ────────────────────────────
+# ── Security group aplikacji ─────────────────────────────────────────
 
 resource "aws_security_group" "aplikacja" {
-  name        = "${local.prefix}-app-${var.uczestnik}"
-  description = "Security group aplikacji quotes-api - wylacznie ruch HTTPS"
+  name        = "${local.prefix}-app"
+  description = "Ruch HTTPS do quotes-api"
   vpc_id      = aws_vpc.glowna.id
 
-  # Reguły zadeklarowane inline (nie jako osobne aws_vpc_security_group_*_rule),
-  # żeby ten security group był autorytatywny: terraform plan wykryje i cofnie
-  # każdą regułę dodaną poza Terraformem (np. ręcznie w konsoli AWS).
-  ingress {
-    description = "Ruch HTTPS z internetu"
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+  tags = merge(local.tags, { Name = "${local.prefix}-app" })
+}
 
-  egress {
-    description = "Ruch wychodzacy HTTPS"
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+resource "aws_vpc_security_group_ingress_rule" "https" {
+  security_group_id = aws_security_group.aplikacja.id
+  description       = "HTTPS z internetu"
+  cidr_ipv4         = "0.0.0.0/0"
+  from_port         = 443
+  to_port           = 443
+  ip_protocol       = "tcp"
+}
 
-  tags = merge(local.tags, { Name = "${local.prefix}-app-${var.uczestnik}" })
+# Wyjście zawężone do HTTPS — domyślne "wszystko wszędzie" przechodzi przez skanery,
+# ale to właśnie tą drogą wychodzą dane po udanym włamaniu.
+resource "aws_vpc_security_group_egress_rule" "https" {
+  security_group_id = aws_security_group.aplikacja.id
+  description       = "Ruch wychodzacy HTTPS - ECR, API AWS"
+  cidr_ipv4         = "0.0.0.0/0"
+  from_port         = 443
+  to_port           = 443
+  ip_protocol       = "tcp"
 }

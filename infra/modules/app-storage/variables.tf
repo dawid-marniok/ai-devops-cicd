@@ -1,33 +1,27 @@
 variable "uczestnik" {
-  description = "Identyfikator uczestnika szkolenia, używany w nazwach zasobów i tagach"
+  description = "Identyfikator uczestnika — małe litery i myślniki, wchodzi w nazwy zasobów"
   type        = string
 
   validation {
-    condition     = can(regex("^[a-z0-9]([a-z0-9-]{0,18}[a-z0-9])?$", var.uczestnik))
-    error_message = "Dozwolone są małe litery, cyfry i myślniki (2-20 znaków, bez myślnika na początku/końcu) — nazwa wchodzi w skład nazwy bucketu S3."
+    condition     = can(regex("^[a-z0-9-]{2,20}$", var.uczestnik))
+    error_message = "Dozwolone są tylko małe litery, cyfry i myślniki, od 2 do 20 znaków."
   }
 }
 
 variable "blok" {
-  description = "Identyfikator bloku szkoleniowego, używany w nazwach zasobów i tagach"
+  description = "Numer bloku szkolenia — trafia do tagów, ułatwia sprzątanie"
   type        = string
   default     = "b1"
 }
 
+variable "region" {
+  description = "Region AWS, w którym powstają zasoby"
+  type        = string
+  default     = "eu-central-1"
+}
+
 variable "cidr_vpc" {
-  description = "Zakres adresów CIDR dla VPC szkoleniowej"
+  description = "Zakres adresów dla VPC szkoleniowej"
   type        = string
   default     = "10.20.0.0/16"
-}
-
-variable "cidr_subnet_publiczna" {
-  description = "Zakres adresów CIDR dla podsieci publicznej"
-  type        = string
-  default     = "10.20.1.0/24"
-}
-
-variable "cidr_subnet_prywatna" {
-  description = "Zakres adresów CIDR dla podsieci prywatnej"
-  type        = string
-  default     = "10.20.2.0/24"
 }
